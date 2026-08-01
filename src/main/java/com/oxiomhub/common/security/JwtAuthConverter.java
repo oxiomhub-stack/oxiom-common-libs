@@ -36,21 +36,38 @@ public final class JwtAuthConverter implements Converter<Jwt, AbstractAuthentica
         return new JwtAuthenticationToken(jwt, authorities, jwt.getSubject());
     }
 
-    /** App roles carried by the token, upper-cased and filtered; defaults to {@code [CANDIDATE]}. */
+    /**
+     * App roles carried by the token, upper-cased and filtered; defaults to {@code [CANDIDATE]}.
+     * Reads Cognito's {@code cognito:groups} (cloud) first, then Keycloak's
+     * {@code realm_access.roles} (local) — so one converter works for both providers.
+     */
     public static List<String> appRoles(Jwt jwt) {
+        List<String> fromCognito = mapRoles(jwt.getClaimAsStringList("cognito:groups"));
+        if (!fromCognito.isEmpty()) {
+            return fromCognito;
+        }
         Map<String, Object> realmAccess = jwt.getClaimAsMap("realm_access");
         if (realmAccess != null && realmAccess.get("roles") instanceof Collection<?> roles) {
-            List<String> mapped = new ArrayList<>();
-            for (Object role : roles) {
-                String upper = String.valueOf(role).toUpperCase(Locale.ROOT);
-                if (APP_ROLES.contains(upper) && !mapped.contains(upper)) {
-                    mapped.add(upper);
-                }
-            }
-            if (!mapped.isEmpty()) {
-                return List.copyOf(mapped);
+            List<String> fromKeycloak = mapRoles(roles);
+            if (!fromKeycloak.isEmpty()) {
+                return fromKeycloak;
             }
         }
         return DEFAULT_ROLES;
+    }
+
+    /** Upper-case, filter to known app roles, de-duplicate. */
+    private static List<String> mapRoles(Collection<?> raw) {
+        if (raw == null) {
+            return List.of();
+        }
+        List<String> mapped = new ArrayList<>();
+        for (Object role : raw) {
+            String upper = String.valueOf(role).toUpperCase(Locale.ROOT);
+            if (APP_ROLES.contains(upper) && !mapped.contains(upper)) {
+                mapped.add(upper);
+            }
+        }
+        return mapped;
     }
 }
