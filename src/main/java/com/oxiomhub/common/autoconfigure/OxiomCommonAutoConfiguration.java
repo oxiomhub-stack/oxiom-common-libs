@@ -67,7 +67,7 @@ public class OxiomCommonAutoConfiguration {
      */
     @Bean
     @ConditionalOnMissingBean(JwtDecoder.class)
-    @ConditionalOnProperty(prefix = "oxiom.security.jwt", name = "issuers")
+    @ConditionalOnProperty(prefix = "oxiom.security.jwt", name = "issuers[0]")
     public JwtDecoder jwtDecoder(OxiomJwtProperties props) {
         return new MultiIssuerJwtDecoder(props.getIssuers());
     }
