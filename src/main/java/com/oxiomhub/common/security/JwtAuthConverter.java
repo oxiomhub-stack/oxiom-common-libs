@@ -18,22 +18,46 @@ import java.util.Set;
 /**
  * Maps a Keycloak/Cognito JWT to Spring authorities: keeps the default {@code SCOPE_*} and adds
  * {@code ROLE_*} for app roles found under {@code realm_access.roles}, defaulting to CANDIDATE.
- * Cognito swap = read {@code cognito:groups} instead.
+ * Cognito swap = read {@code cognito:groups} instead. M2M tokens with {@code .../service} scope
+ * get {@code ROLE_SERVICE} for internal service-to-service calls (PS-73).
  */
 public final class JwtAuthConverter implements Converter<Jwt, AbstractAuthenticationToken> {
 
-    private static final Set<String> APP_ROLES = Set.of("CANDIDATE", "RECRUITER", "ADMIN");
+    private static final Set<String> APP_ROLES = Set.of("CANDIDATE", "RECRUITER", "BUSINESS", "ADMIN");
     private static final List<String> DEFAULT_ROLES = List.of("CANDIDATE");
+    private static final String SERVICE_SCOPE_SUFFIX = "/service";
 
     private final JwtGrantedAuthoritiesConverter scopes = new JwtGrantedAuthoritiesConverter();
 
     @Override
     public AbstractAuthenticationToken convert(Jwt jwt) {
         Collection<GrantedAuthority> authorities = new ArrayList<>(scopes.convert(jwt));
-        for (String role : appRoles(jwt)) {
-            authorities.add(new SimpleGrantedAuthority("ROLE_" + role));
+
+        // M2M tokens have no cognito:groups but carry a .../service scope.
+        if (hasServiceScope(jwt)) {
+            authorities.add(new SimpleGrantedAuthority("ROLE_SERVICE"));
+        } else {
+            for (String role : appRoles(jwt)) {
+                authorities.add(new SimpleGrantedAuthority("ROLE_" + role));
+            }
         }
         return new JwtAuthenticationToken(jwt, authorities, jwt.getSubject());
+    }
+
+    private static boolean hasServiceScope(Jwt jwt) {
+        List<String> scopeList = jwt.getClaimAsStringList("scope");
+        if (scopeList != null) {
+            return scopeList.stream().anyMatch(s -> s.endsWith(SERVICE_SCOPE_SUFFIX));
+        }
+        String scopeString = jwt.getClaimAsString("scope");
+        if (scopeString != null) {
+            for (String s : scopeString.split(" ")) {
+                if (s.endsWith(SERVICE_SCOPE_SUFFIX)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /**
