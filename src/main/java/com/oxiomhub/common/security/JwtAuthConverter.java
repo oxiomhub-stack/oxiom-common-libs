@@ -23,7 +23,7 @@ import java.util.Set;
  */
 public final class JwtAuthConverter implements Converter<Jwt, AbstractAuthenticationToken> {
 
-    private static final Set<String> APP_ROLES = Set.of("CANDIDATE", "RECRUITER", "ADMIN");
+    private static final Set<String> APP_ROLES = Set.of("CANDIDATE", "RECRUITER", "BUSINESS", "ADMIN");
     private static final List<String> DEFAULT_ROLES = List.of("CANDIDATE");
     private static final String SERVICE_SCOPE_SUFFIX = "/service";
 

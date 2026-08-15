@@ -13,7 +13,7 @@
 
     <groupId>com.oxiomhub</groupId>
     <artifactId>oxiom-common-libs</artifactId>
-    <version>0.1.1</version>
+    <version>0.2.0</version>
     <name>oxiom-common-libs</name>
     <description>Shared OxiomHub building blocks: JWT auth converter, RFC-7807 error handling, domain-event publisher, CORS. (PS-13)</description>
 

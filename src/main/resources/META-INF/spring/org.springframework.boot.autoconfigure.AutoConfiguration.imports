@@ -1,1 +1,2 @@
 com.oxiomhub.common.autoconfigure.OxiomCommonAutoConfiguration
+com.oxiomhub.common.autoconfigure.OxiomSecurityAutoConfiguration
