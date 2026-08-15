@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.security.oauth2.resource.servlet.OAuth2ResourceServerAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
@@ -25,7 +26,7 @@ import java.util.List;
  * and (PS-93) a multi-issuer JwtDecoder when {@code oxiom.security.jwt.issuers} is set.
  * Each is {@code @ConditionalOnMissingBean}, so a service can override any of them.
  */
-@AutoConfiguration
+@AutoConfiguration(before = OAuth2ResourceServerAutoConfiguration.class)
 @EnableConfigurationProperties(OxiomJwtProperties.class)
 public class OxiomCommonAutoConfiguration {
 
