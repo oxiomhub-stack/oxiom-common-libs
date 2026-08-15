@@ -2,11 +2,16 @@ package com.oxiomhub.common.autoconfigure;
 
 import com.oxiomhub.common.event.DomainEventPublisher;
 import com.oxiomhub.common.event.NoOpDomainEventPublisher;
+import com.oxiomhub.common.security.MultiIssuerJwtDecoder;
+import com.oxiomhub.common.security.OxiomJwtProperties;
 import com.oxiomhub.common.web.ApiExceptionHandler;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -16,10 +21,12 @@ import java.util.List;
 
 /**
  * Auto-registers the shared OxiomHub beans in any consuming service:
- * the RFC-7807 error handler, the no-op domain-event publisher, and a CORS source for the SPA.
+ * the RFC-7807 error handler, the no-op domain-event publisher, CORS source for the SPA,
+ * and (PS-93) a multi-issuer JwtDecoder when {@code oxiom.security.jwt.issuers} is set.
  * Each is {@code @ConditionalOnMissingBean}, so a service can override any of them.
  */
 @AutoConfiguration
+@EnableConfigurationProperties(OxiomJwtProperties.class)
 public class OxiomCommonAutoConfiguration {
 
     @Bean
@@ -50,5 +57,17 @@ public class OxiomCommonAutoConfiguration {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;
+    }
+
+    /**
+     * Multi-issuer JWT decoder for validating tokens from multiple Cognito pools (PS-93).
+     * Only activates when {@code oxiom.security.jwt.issuers} is set — local dev (Keycloak)
+     * continues to use the standard single-issuer decoder configured by Spring Boot.
+     */
+    @Bean
+    @ConditionalOnMissingBean(JwtDecoder.class)
+    @ConditionalOnProperty(prefix = "oxiom.security.jwt", name = "issuers")
+    public JwtDecoder jwtDecoder(OxiomJwtProperties props) {
+        return new MultiIssuerJwtDecoder(props.getIssuers());
     }
 }
